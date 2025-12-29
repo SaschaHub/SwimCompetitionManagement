@@ -1,0 +1,35 @@
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: pdf_web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./web:/app
+      - ./uploads:/app/uploads
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=documents
+      - DB_USER=user
+      - DB_PASSWORD=userpass
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:10.6
+    container_name: pdf_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: documents
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
+
+

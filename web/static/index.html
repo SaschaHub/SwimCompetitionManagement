@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Upload & Suche</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#000000">
+
+    <!-- html2pdf.js für PDF-Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1, h2 {
+            margin-bottom: 10px;
+        }
+
+        input[type="text"], input[type="file"] {
+            padding: 6px;
+            margin-bottom: 10px;
+            width: 220px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        #documentList {
+            padding: 0;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            display: inline-block;
+            min-width: 300px;
+            max-width: 100%;
+        }
+
+        #documentList li {
+            cursor: pointer;
+            padding: 5px;
+            list-style: none;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #documentList li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .search-field {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .suggestions {
+            background: white;
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 10;
+            width: 220px;
+            top: 48px;
+            left: 0;
+        }
+
+        .suggestions div {
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .suggestions div:hover {
+            background: #eef;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                margin: 10px;
+            }
+
+            .search-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            input[type="text"], input[type="file"] {
+                width: 100%;
+            }
+
+            #documentList {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .suggestions {
+                width: 100%;
+                top: 45px;
+            }
+
+            button {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+
+    <!-- Dark Mode Styles -->
+    <style>
+        body.dark {
+            background: #121212;
+            color: #e0e0e0;
+        }
+
+        body.dark input,
+        body.dark select,
+        body.dark textarea {
+            background: #1e1e1e;
+            color: #fff;
+            border: 1px solid #555;
+        }
+
+        body.dark button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+        }
+
+        body.dark #documentList {
+            border-color: #555;
+        }
+
+        body.dark #documentList li {
+            border-bottom: 1px solid #444;
+        }
+
+        body.dark #documentList li:hover {
+            background-color: #222;
+        }
+
+        body.dark table {
+            color: #fff;
+        }
+
+        body.dark th {
+            background: #333;
+        }
+
+        body.dark td {
+            background: #1e1e1e;
+        }
+
+        body.dark .suggestions {
+            background: #1e1e1e;
+            border-color: #555;
+        }
+
+        body.dark .suggestions div:hover {
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+
+<h1>PDF Upload & Suche</h1>
+<button id="themeToggle" onclick="toggleTheme()">Dark Mode umschalten</button>
+
+<h2>Upload</h2>
+<input type="file" id="fileInput">
+<button onclick="uploadFile()">Hochladen</button>
+
+<h2>Dokumente</h2>
+<ul id="documentList"></ul>
+
+<button id="deleteButton" onclick="deleteSelected()" disabled>Dokument löschen</button>
+
+<h2>Suche</h2>
+
+<div class="search-row">
+    <div class="search-field">
+        <label>Vorname</label>
+        <input id="vornameInput" type="text" disabled oninput="autocompleteField('vorname')">
+        <div id="vornameSuggestions" class="suggestions"></div>
+    </div>
+
+    <div class="search-field">
+        <label>Nachname</label>
+        <input id="nachnameInput" type="text" disabled oninput="autocompleteField('nachname')">
+        <div id="nachnameSuggestions" class="suggestions"></div>
+    </div>
+
+    <div class="search-field">
+        <label>Verein</label>
+        <input id="vereinInput" type="text" disabled oninput="autocompleteField('verein')">
+        <div id="vereinSuggestions" class="suggestions"></div>
+    </div>
+</div>
+
+<button id="searchButton" onclick="searchDocument()" disabled>Suchen</button>
+
+<script src="/static/app.js"></script>
+
+
+<!-- Service Worker deaktiviert -->
+<script>
+// if ("serviceWorker" in navigator) {
+//     navigator.serviceWorker.register("/static/service-worker.js");
+// }
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
