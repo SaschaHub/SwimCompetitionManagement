@@ -136,7 +136,7 @@ async function deleteSelected() {
     await loadDocuments();
 }
 // ---------------------------------------
-// Suche + Ergebnisfenster (ENDGÜLTIGE VERSION: ALLE SEITEN GEFÜLLT IM PDF)
+// Suche + Ergebnisfenster (MIT WETTKAMPF-BEZEICHNUNG IN JEDER ZEILE)
 // ---------------------------------------
 async function searchDocument() {
     if (!selectedDocumentId) {
@@ -173,6 +173,7 @@ async function searchDocument() {
 
         const data = await res.json();
         const results = data.results || [];
+        const meta = data.meta || {};
 
         win.document.write(`
             <html>
@@ -182,6 +183,15 @@ async function searchDocument() {
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                 <style>
                     body { font-family: Arial; margin: 20px; }
+                    .meta-header { 
+                        margin-bottom: 20px; 
+                        padding: 15px; 
+                        background: #f0f8ff; 
+                        border-left: 5px solid #0066cc; 
+                        font-size: 11pt; 
+                        border-radius: 4px;
+                    }
+                    .meta-header strong { margin-right: 15px; color: #0055aa; }
                     table { border-collapse: collapse; width: 100%; font-size: 9pt; page-break-inside: auto; }
                     tr { page-break-inside: avoid; page-break-after: auto; }
                     th, td { border: 1px solid #ccc; padding: 4px; text-align: left; vertical-align: top; }
@@ -200,28 +210,41 @@ async function searchDocument() {
             </head>
             <body>
                 <h1>Suchergebnisse</h1>
+
+                ${meta.einlass || meta.einschwimmen || meta.kampfrichter || meta.beginn ? `
+                <div class="meta-header">
+                    <strong>Einlass:</strong> ${meta.einlass || "–"}&nbsp;&nbsp;&nbsp;&nbsp;
+                    <strong>Einschwimmen:</strong> ${meta.einschwimmen || "–"}<br><br>
+                    <strong>Kampfrichtersitzung:</strong> ${meta.kampfrichter || "–"}&nbsp;&nbsp;&nbsp;&nbsp;
+                    <strong>Beginn:</strong> ${meta.beginn || "–"}
+                </div>
+                ` : ""}
+
                 <div class="export-buttons">
                     <button onclick="exportCSV()">CSV herunterladen</button>
                     <button onclick="downloadPDF()">PDF herunterladen</button>
                     <button onclick="printAll()">Drucken</button>
                 </div>
-                <table id="resultTable">
-                    <thead>
-                        <tr>
-                            <th onclick="sortTable(0)">Verein</th>
-                            <th onclick="sortTable(1)">Nachname</th>
-                            <th onclick="sortTable(2)">Vorname</th>
-                            <th onclick="sortTable(3)">Datum</th>
-                            <th onclick="sortTable(4)">Abschnitt</th>
-                            <th onclick="sortTable(5)">Wettkampf</th>
-                            <th onclick="sortTable(6)">Lauf</th>
-                            <th onclick="sortTable(7)">Bahn</th>
-                            <th onclick="sortTable(8)">Jahrgang</th>
-                            <th onclick="sortTable(9)">Meldezeit</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div class="content-wrapper">
+                    <table id="resultTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Verein</th>
+                                <th onclick="sortTable(1)">Nachname</th>
+                                <th onclick="sortTable(2)">Vorname</th>
+                                <th onclick="sortTable(3)">Datum</th>
+                                <th onclick="sortTable(4)">Abschnitt</th>
+                                <th onclick="sortTable(5)">Wettkampf</th>
+                                <th>Wettkampf-Bezeichnung</th>
+                                <th onclick="sortTable(6)">Lauf</th>
+                                <th onclick="sortTable(7)">Bahn</th>
+                                <th onclick="sortTable(8)">Jahrgang</th>
+                                <th onclick="sortTable(9)">Meldezeit</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
                 <div class="pagination">
                     <button onclick="prevPage()">◀ Vorherige Seite</button>
                     <button onclick="nextPage()">Nächste Seite ▶</button>
@@ -262,6 +285,7 @@ async function searchDocument() {
                                 <td>\${esc(r.abschnitt && r.abschnitt.datum)}</td>
                                 <td>\${esc(r.abschnitt && r.abschnitt.nummer)}</td>
                                 <td>\${esc(r.wettkampf && r.wettkampf.nummer)}</td>
+                                <td>\${esc(r.wettkampf_bezeichnung || "")}</td>
                                 <td>\${esc(laufText)}</td>
                                 <td>\${esc(r.bahn)}</td>
                                 <td>\${esc(r.jahrgang)}</td>
@@ -305,14 +329,15 @@ async function searchDocument() {
                                     case 3: return (obj.abschnitt && obj.abschnitt.datum || "").toLowerCase();
                                     case 4: return (obj.abschnitt && obj.abschnitt.nummer || "").toLowerCase();
                                     case 5: return (obj.wettkampf && obj.wettkampf.nummer || "").toLowerCase();
-                                    case 6:
+                                    case 6: return (obj.wettkampf_bezeichnung || "").toLowerCase();
+                                    case 7:
                                         if (obj.lauf && obj.lauf.lauf_nr && obj.lauf.lauf_gesamt) {
                                             return (obj.lauf.lauf_nr + "/" + obj.lauf.lauf_gesamt).toLowerCase();
                                         }
                                         return "";
-                                    case 7: return (obj.bahn || "").toLowerCase();
-                                    case 8: return (obj.jahrgang || "").toLowerCase();
-                                    case 9: return (obj.meldezeit || "").toLowerCase();
+                                    case 8: return (obj.bahn || "").toLowerCase();
+                                    case 9: return (obj.jahrgang || "").toLowerCase();
+                                    case 10: return (obj.meldezeit || "").toLowerCase();
                                     default: return "";
                                 }
                             }
@@ -335,7 +360,7 @@ async function searchDocument() {
                     }
 
                     function exportCSV() {
-                        let csv = "Verein;Nachname;Vorname;Datum;Abschnitt;Wettkampf;Lauf;Bahn;Jahrgang;Meldezeit\\n";
+                        let csv = "Verein;Nachname;Vorname;Datum;Abschnitt;Wettkampf;Wettkampf-Bezeichnung;Lauf;Bahn;Jahrgang;Meldezeit\\n";
                         allResults.forEach(r => {
                             const laufText = r.lauf ? \`\${r.lauf.lauf_nr}/\${r.lauf.lauf_gesamt}\` : "";
                             const row = [
@@ -345,6 +370,7 @@ async function searchDocument() {
                                 r.abschnitt?.datum || "",
                                 r.abschnitt?.nummer || "",
                                 r.wettkampf?.nummer || "",
+                                r.wettkampf_bezeichnung || "",
                                 laufText,
                                 r.bahn || "",
                                 r.jahrgang || "",
@@ -360,14 +386,11 @@ async function searchDocument() {
                         a.click();
                     }
 
-                    // ENDLICH: PERFEKTER PDF-EXPORT MIT ALLEN SEITEN GEFÜLLT
                     function downloadPDF() {
-                        const table = document.getElementById("resultTable");
-                        const tbody = table.querySelector("tbody");
+                        const tbody = document.querySelector("#resultTable tbody");
                         const originalHTML = tbody.innerHTML;
 
                         tbody.innerHTML = "";
-
                         allResults.forEach(r => {
                             const laufText = r.lauf ? \`\${r.lauf.lauf_nr}/\${r.lauf.lauf_gesamt}\` : "";
                             const row = document.createElement("tr");
@@ -377,7 +400,8 @@ async function searchDocument() {
                                 <td>\${esc(r.vorname || "")}</td>
                                 <td>\${esc(r.abschnitt?.datum || "")}</td>
                                 <td>\${esc(r.abschnitt?.nummer || "")}</td>
-                                <td>\${esc(r.wettkampf?.nummer || "")}</td>
+                                <td>\${esc(r.wettkampf && r.wettkampf.nummer || "")}</td>
+                                <td>\${esc(r.wettkampf_bezeichnung || "")}</td>
                                 <td>\${esc(laufText)}</td>
                                 <td>\${esc(r.bahn || "")}</td>
                                 <td>\${esc(r.jahrgang || "")}</td>
@@ -386,40 +410,36 @@ async function searchDocument() {
                             tbody.appendChild(row);
                         });
 
-                        // Wichtig für korrekte Seitenumbrüche
-                        table.style.pageBreakInside = "auto";
+                        document.querySelector(".pagination").style.display = "none";
+                        document.querySelector(".export-buttons").style.display = "none";
+
+                        const contentHeight = document.querySelector(".content-wrapper").offsetHeight + 
+                                              (document.querySelector(".meta-header") ? document.querySelector(".meta-header").offsetHeight : 0) + 
+                                              100;
 
                         setTimeout(() => {
                             html2pdf()
-                                .from(table)
+                                .from(document.body)
                                 .set({
-                                    margin: [5, 5, 10, 5],
+                                    margin: [15, 5, 10, 5],
                                     filename: "ergebnisse.pdf",
-                                    html2canvas: { 
-                                        scale: 2,
-                                        useCORS: true,
-                                        scrollY: 0,
-                                        scrollX: 0,
-                                        windowWidth: document.documentElement.offsetWidth,
-                                        windowHeight: document.documentElement.offsetHeight
-                                    },
-                                    jsPDF: { 
-                                        unit: "mm", 
-                                        format: "a4", 
-                                        orientation: "landscape"
-                                    }
+                                    html2canvas: { scale: 2, useCORS: true, height: contentHeight, windowHeight: contentHeight },
+                                    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }
                                 })
                                 .save()
                                 .then(() => {
                                     tbody.innerHTML = originalHTML;
                                     renderPage();
+                                    document.querySelector(".pagination").style.display = "";
+                                    document.querySelector(".export-buttons").style.display = "";
                                 })
                                 .catch(err => {
                                     console.error("PDF-Fehler:", err);
-                                    alert("Fehler beim PDF-Export. Siehe Konsole.");
+                                    alert("Fehler beim PDF-Export.");
                                     tbody.innerHTML = originalHTML;
+                                    renderPage();
                                 });
-                        }, 2000); // 2 Sekunden warten – sicherheitshalber
+                        }, 1200);
                     }
 
                     function printAll() {
@@ -435,7 +455,8 @@ async function searchDocument() {
                                 <td>\${esc(r.vorname || "")}</td>
                                 <td>\${esc(r.abschnitt?.datum || "")}</td>
                                 <td>\${esc(r.abschnitt?.nummer || "")}</td>
-                                <td>\${esc(r.wettkampf?.nummer || "")}</td>
+                                <td>\${esc(r.wettkampf && r.wettkampf.nummer || "")}</td>
+                                <td>\${esc(r.wettkampf_bezeichnung || "")}</td>
                                 <td>\${esc(laufText)}</td>
                                 <td>\${esc(r.bahn || "")}</td>
                                 <td>\${esc(r.jahrgang || "")}</td>
